@@ -1,5 +1,6 @@
 import { useState } from 'react';
 
+const Tab = [];
 
 export default function LoginPage() {
   const [tab, setTab] = useState('login');
