@@ -5,7 +5,9 @@ import client from './apollo/client';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import MyPage from './pages/MyPage';
-import { useAuth } from './hooks/useAuth'; 
+import { useAuth } from './hooks/useAuth';
+import FavoritePage from './pages/FavoritePage';
+
 
 function TokenHandler() {
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<MainPage />} />
           <Route path="/mypage" element={<MyPage />} />
+          <Route path="/favorites" element={<FavoritePage />} />
         </Routes>
       </BrowserRouter>
     </ApolloProvider>
