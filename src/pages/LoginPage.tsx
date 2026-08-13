@@ -1,6 +1,5 @@
 import { useState } from 'react';
 
-
 export default function LoginPage() {
   const [tab, setTab] = useState('login');
   const [email, setEmail] = useState('');
@@ -9,12 +8,28 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const validateEmail = (em: string): string | null => {
+    if (!em) return '이메일을 입력해주세요.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) return '올바른 이메일 형식이 아닙니다.';
+    return null;
+  };
+
+  const validatePassword = (pw: string): string | null => {
+    if (pw.length < 8) return '비밀번호는 8자 이상이어야 합니다.';
+    if (!/[A-Za-z]/.test(pw)) return '비밀번호는 영문자를 포함해야 합니다.';
+    if (!/[0-9]/.test(pw)) return '비밀번호는 숫자를 포함해야 합니다.';
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) return '비밀번호는 특수문자를 포함해야 합니다.';
+    return null;
+  };
+
   const handleGoogleLogin = () => {
     window.location.href = 'http://localhost:8080/oauth2/authorization/google';
   };
 
   const handleLogin = async () => {
     setError('');
+    const emailError = validateEmail(email);
+    if (emailError) { setError(emailError); return; }
     setLoading(true);
     try {
       const res = await fetch('http://localhost:8080/api/auth/login', {
@@ -35,6 +50,11 @@ export default function LoginPage() {
 
   const handleSignup = async () => {
     setError('');
+    const emailError = validateEmail(email);
+    if (emailError) { setError(emailError); return; }
+    if (!name.trim()) { setError('이름을 입력해주세요.'); return; }
+    const passwordError = validatePassword(password);
+    if (passwordError) { setError(passwordError); return; }
     setLoading(true);
     try {
       const res = await fetch('http://localhost:8080/api/auth/signup', {
@@ -45,6 +65,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       setTab('login');
+      setEmail(''); setPassword(''); setName('');
       alert('회원가입이 완료되었습니다. 로그인해주세요.');
     } catch (e: any) {
       setError(e.message);
@@ -52,6 +73,26 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  // 비밀번호 강도 계산
+  const passwordConditions = [
+    password.length >= 8,
+    /[A-Za-z]/.test(password),
+    /[0-9]/.test(password),
+    /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+  ];
+  const passwordScore = passwordConditions.filter(Boolean).length;
+  const strengthLabel = ['', '약함', '보통', '강함', '매우 강함'][passwordScore];
+  const strengthBarColor = ['', 'bg-red-400', 'bg-orange-400', 'bg-[#03A9F4]', 'bg-[#00BCD4]'][passwordScore];
+  const strengthTextColor = ['', 'text-red-400', 'text-orange-400', 'text-[#03A9F4]', 'text-[#00BCD4]'][passwordScore];
+  const missingConditions = [
+    !passwordConditions[0] && '8자 이상',
+    !passwordConditions[1] && '영문자',
+    !passwordConditions[2] && '숫자',
+    !passwordConditions[3] && '특수문자',
+  ].filter(Boolean).join(', ');
 
   return (
     <div className="min-h-screen bg-[#B3E5FC] flex items-center justify-center px-4">
@@ -98,8 +139,19 @@ export default function LoginPage() {
               value={email}
               onChange={e => setEmail(e.target.value)}
               placeholder="example@email.com"
-              className="w-full px-3 py-2.5 border border-[#BDBDBD] rounded-md text-sm text-[#212121] outline-none focus:border-[#03A9F4] transition-colors"
+              className={`w-full px-3 py-2.5 border rounded-md text-sm text-[#212121] outline-none transition-colors ${
+                email && !isEmailValid
+                  ? 'border-red-400 focus:border-red-400'
+                  : email && isEmailValid
+                  ? 'border-[#00BCD4]'
+                  : 'border-[#BDBDBD] focus:border-[#03A9F4]'
+              }`}
             />
+            {email && (
+              <p className={`text-xs ${isEmailValid ? 'text-[#00BCD4]' : 'text-red-400'}`}>
+                {isEmailValid ? '✓ 올바른 이메일 형식입니다.' : '올바른 이메일 형식이 아닙니다.'}
+              </p>
+            )}
           </div>
 
           {/* 이름 (회원가입만) */}
@@ -127,6 +179,31 @@ export default function LoginPage() {
               className="w-full px-3 py-2.5 border border-[#BDBDBD] rounded-md text-sm text-[#212121] outline-none focus:border-[#03A9F4] transition-colors"
               onKeyDown={e => e.key === 'Enter' && (tab === 'login' ? handleLogin() : handleSignup())}
             />
+
+            {/* 비밀번호 강도 바 (회원가입만) */}
+            {tab === 'signup' && password && (
+              <div className="flex flex-col gap-1.5 mt-1">
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3].map(i => (
+                    <div
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                        i < passwordScore ? strengthBarColor : 'bg-[#BDBDBD]'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className={`text-xs font-medium ${strengthTextColor}`}>
+                    비밀번호 강도: {strengthLabel}
+                  </span>
+                  <span className="text-xs text-[#757575]">{passwordScore}/4</span>
+                </div>
+                {passwordScore < 4 && (
+                  <p className="text-xs text-[#757575]">{missingConditions} 필요</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* 메인 버튼 */}
@@ -166,7 +243,7 @@ export default function LoginPage() {
             {tab === 'login' ? '계정이 없으신가요? ' : '이미 계정이 있으신가요? '}
           </span>
           <button
-            onClick={() => { setTab(tab === 'login' ? 'signup' : 'login'); setError(''); }}
+            onClick={() => { setTab(tab === 'login' ? 'signup' : 'login'); setError(''); setEmail(''); setPassword(''); setName(''); }}
             className="text-xs text-[#03A9F4] font-bold hover:text-[#0288D1]"
           >
             {tab === 'login' ? '회원가입' : '로그인'}
