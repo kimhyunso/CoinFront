@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import client from './apollo/client';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
+import MyPage from './pages/MyPage';
 
 function TokenHandler() {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<MainPage />} />
+          <Route path="/mypage" element={<MyPage />} />
         </Routes>
       </BrowserRouter>
     </ApolloProvider>

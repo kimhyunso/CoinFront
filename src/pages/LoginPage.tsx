@@ -1,6 +1,5 @@
 import { useState } from 'react';
 
-const Tab = [];
 
 export default function LoginPage() {
   const [tab, setTab] = useState('login');
@@ -66,7 +65,7 @@ export default function LoginPage() {
 
         {/* 탭 */}
         <div className="flex border-b border-[#BDBDBD]">
-          {(['login', 'signup'] as Tab[]).map(t => (
+          {(['login', 'signup']).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setError(''); }}
