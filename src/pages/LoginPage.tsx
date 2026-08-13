@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
+  const { login } = useAuth();
   const [tab, setTab] = useState('login');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -39,7 +41,7 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      localStorage.setItem('token', data.token);
+      login(data.token);      
       window.location.href = '/';
     } catch (e: any) {
       setError(e.message);

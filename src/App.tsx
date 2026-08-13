@@ -5,17 +5,18 @@ import client from './apollo/client';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import MyPage from './pages/MyPage';
+import { useAuth } from './hooks/useAuth'; 
 
 function TokenHandler() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
     if (token) {
-      localStorage.setItem('token', token);
-      window.history.replaceState({}, '', '/');  // URL에서 token 제거
-      navigate('/', { replace: true });
+      login(token);
+      window.location.replace('/');
     }
   }, []);
 
@@ -26,7 +27,7 @@ export default function App() {
   return (
     <ApolloProvider client={client}>
       <BrowserRouter>
-        <TokenHandler />  {/* BrowserRouter 안으로 이동! */}
+        <TokenHandler />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<MainPage />} />
