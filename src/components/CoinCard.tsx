@@ -30,6 +30,9 @@ export default function CoinCard({ symbol, name }: CoinCardProps) {
     { variables: { symbol } }
   );
 
+   console.log('CoinCard 상태:', { symbol, data, loading, error }); // 추가!
+
+
   const price = data?.priceUpdated;
   const isPositive = price ? parseFloat(price.changePercent) >= 0 : null;
 
