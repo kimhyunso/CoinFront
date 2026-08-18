@@ -4,6 +4,8 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { gql } from 'graphql-tag';
 import { useAuth } from '../hooks/useAuth';
 import CoinCard from '../components/CoinCard';
+import PriceHistoryChart from '../components/PriceHistoryChart';
+import PriceStatCard from '../components/PriceStatCard';
 
 const GET_FAVORITES = gql`
   query GetFavorites {
@@ -31,19 +33,29 @@ interface GetFavoritesData {
   favorites: FavoriteCoin[];
 }
 
-type Tab = 'profile' | 'favorites';
+type Tab = 'profile' | 'favorites' | 'history';
+
+const COINS = [
+  { symbol: 'BTCUSDT', name: 'Bitcoin' },
+  { symbol: 'ETHUSDT', name: 'Ethereum' },
+  { symbol: 'BNBUSDT', name: 'BNB' },
+  { symbol: 'SOLUSDT', name: 'Solana' },
+  { symbol: 'XRPUSDT', name: 'XRP' },
+];
 
 const SIDEBAR_MENUS = [
   { key: 'profile', label: '회원 정보', icon: '👤' },
   { key: 'favorites', label: '즐겨찾기', icon: '★' },
+  { key: 'history', label: '가격 히스토리', icon: '📈' },
 ];
 
 export default function MyPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
+  const [selectedSymbol, setSelectedSymbol] = useState('BTCUSDT');
 
-  // 훅은 최상단에 모두 선언
+  // 훅
   const { data, loading, error, refetch } = useQuery<GetFavoritesData>(GET_FAVORITES);
   const [removeFavorite] = useMutation(REMOVE_FAVORITE, {
     onCompleted: () => refetch(),
@@ -52,7 +64,7 @@ export default function MyPage() {
   // 일반 변수
   const favorites: FavoriteCoin[] = data?.favorites ?? [];
 
-  // JWT 토큰에서 정보 파싱
+  // JWT 파싱
   const token = localStorage.getItem('token');
   let email = '';
   let name = '';
@@ -198,7 +210,6 @@ export default function MyPage() {
                 <span className="text-xs text-[#757575]">{favorites.length}개</span>
               </div>
 
-              {/* 로딩 */}
               {loading && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[1, 2].map(i => (
@@ -207,14 +218,12 @@ export default function MyPage() {
                 </div>
               )}
 
-              {/* 에러 */}
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-md px-4 py-3">
                   데이터를 불러오는 중 오류가 발생했어요.
                 </div>
               )}
 
-              {/* 없음 */}
               {!loading && !error && favorites.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 border border-[#BDBDBD] rounded-xl">
                   <span className="text-3xl text-[#BDBDBD]">★</span>
@@ -228,7 +237,6 @@ export default function MyPage() {
                 </div>
               )}
 
-              {/* 즐겨찾기 목록 */}
               {!loading && !error && favorites.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {favorites.map((coin) => (
@@ -245,6 +253,38 @@ export default function MyPage() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 가격 히스토리 탭 */}
+          {activeTab === 'history' && (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-[#212121] font-semibold text-lg">가격 히스토리</h2>
+              </div>
+
+              {/* 코인 선택 탭 */}
+              <div className="flex gap-1 flex-wrap">
+                {COINS.map(coin => (
+                  <button
+                    key={coin.symbol}
+                    onClick={() => setSelectedSymbol(coin.symbol)}
+                    className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      selectedSymbol === coin.symbol
+                        ? 'bg-[#03A9F4]/10 text-[#03A9F4] border border-[#03A9F4]/40'
+                        : 'text-[#757575] border border-[#BDBDBD] hover:text-[#212121]'
+                    }`}
+                  >
+                    {coin.name}
+                  </button>
+                ))}
+              </div>
+
+              {/* 고가/저가 통계 추가! */}
+              <PriceStatCard symbol={selectedSymbol} />
+
+              {/* 히스토리 차트 */}
+              <PriceHistoryChart symbol={selectedSymbol} />
             </div>
           )}
         </main>
