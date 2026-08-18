@@ -143,8 +143,8 @@ export default function PriceHistoryChart({ symbol }: PriceHistoryChartProps) {
                 borderRadius: '8px',
                 color: '#212121',
               }}
-              formatter={(v: number) => [
-                `$${v.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+              formatter={(value) => [
+                `$${Number(value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
                 '가격',
               ]}
             />
