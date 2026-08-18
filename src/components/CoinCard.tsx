@@ -1,6 +1,7 @@
-import { useSubscription } from '@apollo/client/react';
+import { useSubscription, useMutation, useQuery } from '@apollo/client/react';
 import { gql } from 'graphql-tag';
 import { CoinPrice } from '../types';
+import { useAuth } from '../hooks/useAuth';
 
 const PRICE_SUBSCRIPTION = gql`
   subscription PriceUpdated($symbol: String!) {
@@ -15,8 +16,44 @@ const PRICE_SUBSCRIPTION = gql`
   }
 `;
 
+const GET_FAVORITES = gql`
+  query GetFavorites {
+    favorites {
+      id
+      symbol
+      name
+    }
+  }
+`;
+
+const ADD_FAVORITE = gql`
+  mutation AddFavorite($symbol: String!) {
+    addFavorite(symbol: $symbol) {
+      id
+      symbol
+      name
+    }
+  }
+`;
+
+const REMOVE_FAVORITE = gql`
+  mutation RemoveFavorite($symbol: String!) {
+    removeFavorite(symbol: $symbol)
+  }
+`;
+
 interface PriceSubscriptionData {
   priceUpdated: CoinPrice;
+}
+
+interface FavoriteCoin {
+  id: string;
+  symbol: string;
+  name: string;
+}
+
+interface GetFavoritesData {
+  favorites: FavoriteCoin[];
 }
 
 interface CoinCardProps {
@@ -25,13 +62,38 @@ interface CoinCardProps {
 }
 
 export default function CoinCard({ symbol, name }: CoinCardProps) {
-  const { data, loading, error } = useSubscription<PriceSubscriptionData>(
+  const { isLoggedIn } = useAuth();
+
+  const { data: priceData, loading, error } = useSubscription<PriceSubscriptionData>(
     PRICE_SUBSCRIPTION,
     { variables: { symbol } }
   );
 
-  const price = data?.priceUpdated;
+  // 즐겨찾기 목록 조회 (로그인한 경우만)
+  const { data: favData, refetch } = useQuery<GetFavoritesData>(GET_FAVORITES, {
+    skip: !isLoggedIn,
+  });
+
+  const [addFavorite] = useMutation(ADD_FAVORITE, {
+    onCompleted: () => refetch(),
+  });
+
+  const [removeFavorite] = useMutation(REMOVE_FAVORITE, {
+    onCompleted: () => refetch(),
+  });
+
+  const price = priceData?.priceUpdated;
   const isPositive = price ? parseFloat(price.changePercent) >= 0 : null;
+  const isFavorite = favData?.favorites?.some(f => f.symbol === symbol) ?? false;
+
+  const handleFavorite = () => {
+    if (!isLoggedIn) return;
+    if (isFavorite) {
+      removeFavorite({ variables: { symbol } });
+    } else {
+      addFavorite({ variables: { symbol } });
+    }
+  };
 
   return (
     <div className="bg-white border border-[#BDBDBD] rounded-xl p-5 flex flex-col gap-3 hover:border-[#03A9F4] hover:shadow-md transition-all">
@@ -41,10 +103,24 @@ export default function CoinCard({ symbol, name }: CoinCardProps) {
           <p className="text-[#212121] font-semibold text-base">{name}</p>
           <p className="text-[#757575] text-xs mt-0.5">{symbol}</p>
         </div>
-        <span className="flex items-center gap-1.5 text-xs text-[#00BCD4]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
-          LIVE
-        </span>
+        <div className="flex items-center gap-2">
+          {/* 즐겨찾기 버튼 (로그인한 경우만) */}
+          {isLoggedIn && (
+            <button
+              onClick={handleFavorite}
+              className={`text-lg transition-colors ${
+                isFavorite ? 'text-[#03A9F4]' : 'text-[#BDBDBD] hover:text-[#03A9F4]'
+              }`}
+              title={isFavorite ? '즐겨찾기 삭제' : '즐겨찾기 추가'}
+            >
+              {isFavorite ? '★' : '☆'}
+            </button>
+          )}
+          <span className="flex items-center gap-1.5 text-xs text-[#00BCD4]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#00BCD4] animate-pulse" />
+            LIVE
+          </span>
+        </div>
       </div>
 
       {/* 로딩 */}
