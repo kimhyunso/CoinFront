@@ -1,16 +1,13 @@
 import { ApolloProvider } from '@apollo/client/react';
-import { BrowserRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useEffect } from 'react';
 import client from './apollo/client';
 import MainPage from './pages/MainPage';
 import LoginPage from './pages/LoginPage';
 import MyPage from './pages/MyPage';
 import { useAuth } from './hooks/useAuth';
-import FavoritePage from './pages/FavoritePage';
-
 
 function TokenHandler() {
-  const navigate = useNavigate();
   const { login } = useAuth();
 
   useEffect(() => {
@@ -34,7 +31,6 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<MainPage />} />
           <Route path="/mypage" element={<MyPage />} />
-          <Route path="/favorites" element={<FavoritePage />} />
         </Routes>
       </BrowserRouter>
     </ApolloProvider>

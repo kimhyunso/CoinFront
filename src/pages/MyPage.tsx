@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, gql } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
+import { gql } from 'graphql-tag';
 import { useAuth } from '../hooks/useAuth';
 import CoinCard from '../components/CoinCard';
 
@@ -20,12 +21,36 @@ const REMOVE_FAVORITE = gql`
   }
 `;
 
+interface FavoriteCoin {
+  id: string;
+  symbol: string;
+  name: string;
+}
+
+interface GetFavoritesData {
+  favorites: FavoriteCoin[];
+}
+
 type Tab = 'profile' | 'favorites';
+
+const SIDEBAR_MENUS = [
+  { key: 'profile', label: '회원 정보', icon: '👤' },
+  { key: 'favorites', label: '즐겨찾기', icon: '★' },
+];
 
 export default function MyPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('profile');
+
+  // 훅은 최상단에 모두 선언
+  const { data, loading, error, refetch } = useQuery<GetFavoritesData>(GET_FAVORITES);
+  const [removeFavorite] = useMutation(REMOVE_FAVORITE, {
+    onCompleted: () => refetch(),
+  });
+
+  // 일반 변수
+  const favorites: FavoriteCoin[] = data?.favorites ?? [];
 
   // JWT 토큰에서 정보 파싱
   const token = localStorage.getItem('token');
@@ -35,27 +60,21 @@ export default function MyPage() {
 
   if (token) {
     try {
-      const payload = JSON.parse(atob(token.split('.')[1]));
+      const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const payload = JSON.parse(decodeURIComponent(
+        atob(base64).split('').map(c =>
+          '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+        ).join('')
+      ));
       email = payload.sub || '';
       name = payload.name || '';
       provider = payload.provider || '';
     } catch (e) {}
   }
 
-  const providerLabel = provider === 'google' ? '구글 로그인' : provider === 'local' ? '일반 로그인' : provider;
-
-  // 즐겨찾기 조회
-  const { data, loading, error, refetch } = useQuery(GET_FAVORITES);
-  const [removeFavorite] = useMutation(REMOVE_FAVORITE, {
-    onCompleted: () => refetch(),
-  });
-
-  const favorites = data?.favorites ?? [];
-
-  const SIDEBAR_MENUS = [
-    { key: 'profile', label: '회원 정보', icon: '👤' },
-    { key: 'favorites', label: '즐겨찾기', icon: '★' },
-  ];
+  const providerLabel =
+    provider === 'google' ? '구글 로그인' :
+    provider === 'local' ? '일반 로그인' : provider;
 
   return (
     <div className="min-h-screen bg-white">
@@ -196,7 +215,7 @@ export default function MyPage() {
               )}
 
               {/* 없음 */}
-              {!loading && favorites.length === 0 && (
+              {!loading && !error && favorites.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 gap-3 border border-[#BDBDBD] rounded-xl">
                   <span className="text-3xl text-[#BDBDBD]">★</span>
                   <p className="text-[#757575] text-sm">즐겨찾기한 코인이 없어요.</p>
@@ -210,9 +229,9 @@ export default function MyPage() {
               )}
 
               {/* 즐겨찾기 목록 */}
-              {!loading && favorites.length > 0 && (
+              {!loading && !error && favorites.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {favorites.map((coin: { id: string; symbol: string; name: string }) => (
+                  {favorites.map((coin) => (
                     <div key={coin.id} className="relative">
                       <CoinCard symbol={coin.symbol} name={coin.name} />
                       <button
